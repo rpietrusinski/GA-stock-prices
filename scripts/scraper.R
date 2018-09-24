@@ -1,8 +1,5 @@
-
-
 loadData <- function(x, start, end){
-  # Function loads the required stock monthly data for tick @x from https://stooq.pl domain.
-  # 
+  # Function loads the required stock monthly data for tick @x from https://stooq.pl.
   # 
   # Parameters:
   # -----------
@@ -10,7 +7,6 @@ loadData <- function(x, start, end){
   # start - start date (format = yyyymmdd)
   # end - end date (format = yyyymmdd)
   # 
-  #   
   # Returns:
   # --------
   # data.frame with the following columns:
