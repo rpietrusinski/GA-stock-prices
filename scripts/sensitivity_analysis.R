@@ -1,12 +1,15 @@
 # SENSITIVITY ANALYSIS
 rm(list=ls())
-source("./scripts/GA_helpers.R")
+source("./scripts/GA_implementation.R")
 source("./scripts/scraper.R")
 
 
 # Load data for 5 biggest polish companies
 tickers <- c("kgh","pko","peo","pkn","pzu")
-data <- lapply(tickers, loadData, start=20150701, end=20170831)
+start <- 20150701
+end <- 20170831
+
+data <- lapply(tickers, loadData, start=start, end=end)
 
 # Prepare data
 prepareData(data)

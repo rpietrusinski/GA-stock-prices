@@ -22,14 +22,18 @@ prepareData <- function(data){
   # data - modified dataset
   # chng - matrix with percentage changes in stock prices
   # cor, cov, expectedReturn, risk - measures of stocks under analysis
+  # num_stocks - number of stocks in analysis
   
   
   # Count percentage differences of stock prices (based on the closing price)
   data <- lapply(data, FUN = function(x){ x %>% 
       mutate(Zmiana = (Zamkniecie-lag(Zamkniecie))/lag(Zamkniecie))})
   
+  # number of stocks
+  num_stocks <- length(data)
+  
   # Create matrix with stock prices monthly percentage changes
-  chng <- sapply(1:5, FUN = function(x) rbind(data[[x]][,7]))[-1,]
+  chng <- sapply(1:num_stocks, FUN = function(x) rbind(data[[x]][,7]))[-1,]
   colnames(chng) <- tickers
   
   # Correlation, covariance, expected rate of return and risk (measured with standard deviation)
@@ -45,6 +49,7 @@ prepareData <- function(data){
   assign("cov", cov, .GlobalEnv)
   assign("expectedReturn", expectedReturn, .GlobalEnv)
   assign("risk", risk, .GlobalEnv)
+  assign("num_stocks", num_stocks, .GlobalEnv)
 }
 
 
@@ -58,7 +63,7 @@ binToDec <- function(x){
   
 
 # Create an auxiliary function for counting a single speciman adaptation (single portfolio quality)
-singleAdapt <- function(x, num_genes, expectedReturn){
+singleAdapt <- function(x, num_genes, expectedReturn.=expectedReturn, num_stocks.=num_stocks){
   # Function takes @x which is a single specimen (sequence of bits) and returns a value of its adaptation. The adaptation value is the
   # expected portfolio return / portfolio risk.
   # 
@@ -67,24 +72,22 @@ singleAdapt <- function(x, num_genes, expectedReturn){
   # x - specimen, which is a sequence of bits
   # num_genes - number of bits encoding single stock
   # expectedReturn - A vector with expected return rates for analysed stocks
+  # num_stocks. - Number of stocks in analysis
   #   
   # Returns:
   # --------
   # Value of adaptation
   
-
-  num_genes=num_genes
-  expectedReturn=expectedReturn
   
   y <- paste(unlist(x), collapse="")
-  y <- sapply(1:5, FUN = function(z) substring(y,(z-1)*num_genes+1, z*num_genes))
+  y <- sapply(1:num_stocks., FUN = function(z) substring(y,(z-1)*num_genes+1, z*num_genes))
   portfolioShares <- sapply(y,binToDec)
   portfolioShares <- portfolioShares / sum(portfolioShares)
-  expectedPortfolioReturn <- sum(portfolioShares * expectedReturn)
+  expectedPortfolioReturn <- sum(portfolioShares * expectedReturn.)
   
   portfolioRisk <- 0
-  for(i in 1:5){
-    for(j in 1:5){
+  for(i in 1:num_stocks.){
+    for(j in 1:num_stocks.){
       portfolioRisk <- portfolioRisk + portfolioShares[i] * portfolioShares[j] * cov[i,j]
     }
   }
@@ -99,13 +102,14 @@ singleAdapt <- function(x, num_genes, expectedReturn){
 
 
 
-showPortfolio <- function(x, num_genes){
+showPortfolio <- function(x, num_genes, num_stocks.=num_stocks){
   # Function decodes sequence of bits in @x and returns the portfolio structure.
   # 
   # Parameters:
   # -----------
   # x - single portfolio (sequence of bits)
   # num_genes - number of bits encoding single stock
+  # num_stocks. - Number of stocks in analysis
   #   
   # Returns:
   # --------
@@ -113,7 +117,7 @@ showPortfolio <- function(x, num_genes){
   
   
   y <- paste(unlist(x), collapse="")
-  y <- sapply(1:5, FUN = function(z) substring(y,(z-1)*num_genes+1, z*num_genes))
+  y <- sapply(1:num_stocks., FUN = function(z) substring(y,(z-1)*num_genes+1, z*num_genes))
   portfolioShares <- sapply(y,binToDec)
   portfolioShares <- portfolioShares / sum(portfolioShares)
   names(portfolioShares) <- names(expectedReturn)
@@ -121,31 +125,33 @@ showPortfolio <- function(x, num_genes){
 }
 
 
-portfolioReturn <- function(x, num_genes){
+portfolioReturn <- function(x, num_genes, expectedReturn.=expectedReturn, num_stocks.=num_stocks){
   # Function decodes sequence of bits in @x and returns expected return for a given portfolio.
   # 
   # Parameters:
   # -----------
   # x - single portfolio (sequence of bits)  
   # num_genes - number of bits encoding single stock
+  # num_stocks. - Number of stocks in analysis
   #   
   # Returns:
   # --------
   # Value for expected return
   
 
-  e <- sum(showPortfolio(unlist(x), num_genes) * expectedReturn)
+  e <- sum(showPortfolio(unlist(x), num_genes, num_stocks.) * expectedReturn.)
   return(e)
 }
 
 
-portfolioRisk <- function(x, num_genes){
+portfolioRisk <- function(x, num_genes, num_stocks.=num_stocks){
   # Function decodes sequence of bits in @x and returns value of risk for a given portfolio.
   # 
   # Parameters:
   # -----------
   # x - single portfolio (sequence of bits)  
   # num_genes - number of bits encoding single stock
+  # num_stocks. - Number of stocks in analysis
   #   
   # Returns:
   # --------
@@ -154,8 +160,8 @@ portfolioRisk <- function(x, num_genes){
 
   share <- showPortfolio(unlist(x), num_genes)
   portfolioRisk <- 0
-  for(i in 1:5){
-    for(j in 1:5){
+  for(i in 1:num_stocks.){
+    for(j in 1:num_stocks.){
       portfolioRisk <- portfolioRisk + share[i] * share[j] * cov[i,j]
     }
   }
@@ -169,7 +175,9 @@ genalg <- function(num_iter = 200,
                    num_spec = 400,
                    num_genes = 10, 
                    p_cross = 0.9,
-                   p_mutant = 0.01){ 
+                   p_mutant = 0.01,
+                   num_stocks. = num_stocks,
+                   expectedReturn. = expectedReturn){ 
   
   # Function implements genetic algorithm.
   # A single speciman consists of 5 stocks, each encoded by @num_genes bits. Therefore a speciman is encoded with @num_genes * 5 bits. 
@@ -183,6 +191,8 @@ genalg <- function(num_iter = 200,
   # num_genes - Number of number of bits encoding a single stock
   # p_cross - Crossing-over probability
   # p_mutant - Mutation probability
+  # num_stocks. - Number of stocks in analysis
+  # expectedReturn. - Vector of expected returns (returned by @prepareData function)
   #   
   # Returns:
   # --------
@@ -196,7 +206,7 @@ genalg <- function(num_iter = 200,
   
   
   totalBest <- list()
-  chrom_len <- num_genes*5
+  chrom_len <- num_genes*num_stocks.
   
   # Initiate random population
   popul1 <- matrix(data = rbinom(num_spec*chrom_len, 1, .5), nrow = num_spec, ncol = chrom_len)
@@ -206,7 +216,7 @@ genalg <- function(num_iter = 200,
   while(k<=num_iter){
     
     # Add adaptation value for each speciman
-    popul1 <- cbind(popul1, apply(popul1, 1, singleAdapt, num_genes=num_genes, expectedReturn=expectedReturn)) 
+    popul1 <- cbind(popul1, apply(popul1, 1, singleAdapt, num_genes, expectedReturn., num_stocks.)) 
     
     # Save best result / average result, standard deviation and portfolio structure
     maxGeneration <- max(popul1[,ncol(popul1)])
@@ -248,7 +258,7 @@ genalg <- function(num_iter = 200,
       s2 <- specimenVec[2]
       los <- runif(1,0,1) 
       if (los <= p_cross) { 
-        pos <- sample(1:5, 1)
+        pos <- sample(1:num_stocks., 1)
         cut <- round(runif(1, 1, num_genes-1))
         
         p1 <- popul2[s1, ((pos-1)*num_genes+1):(pos*num_genes)]
@@ -290,3 +300,121 @@ genalg <- function(num_iter = 200,
   }
   return(totalBest)
 }
+
+
+
+
+
+# PLOTS 
+
+
+performancePlot <- function(){
+# Generates plots with best speciman, average adaptation, standard deviation
+  
+best <- data.frame(type = "best", value = result$value)
+mean <- data.frame(type = "mean", value = result$avg)
+std  <- data.frame(type = "std dev", value = result$std)
+m <- rbind(best, mean, std)
+m$iter <- seq(1:num_iter)
+
+return(
+  ggplot(m, aes(x=iter, y=value, col=type)) +
+  geom_line(lwd=1) +
+  facet_wrap(~type, scales = "free", nrow = 3) +
+  scale_color_discrete("Legend")
+)
+}
+
+
+violinPlot <- function(){
+# Generates violin plots - distributions of portfolio structure
+  
+a <- as.data.frame(t(mapply(showPortfolio, result$specimen, num_genes, num_stocks)))
+a <- gather(a, stock, value, names(a))
+
+return(
+  ggplot(a, aes(x=stock, y=value, fill=stock)) + 
+    geom_violin() + 
+    stat_summary(fun.y=median, geom="point", size=2, color="red") +
+    labs(title = "Distribution of portfolio shares",
+         subtitle = "Based on the best portfolio in each generation",
+         x="stock", 
+         y = "Share in portfolio")
+)
+
+}
+
+
+riskVsReturnPlot <- function(){
+# Generates risk vs return analysis
+  
+chrom_len <- num_stocks*num_genes
+a <- t(mapply(rbind, result$specimen))
+a <- as.data.frame(cbind(a, apply(a,1,portfolioReturn, num_genes=num_genes), apply(a,1,portfolioRisk,num_genes=num_genes)))
+a <- a[,c(chrom_len+1,chrom_len+2)]
+a[,3] <- a[,1]/a[,2]
+colnames(a) <- c("return", "risk","sharpe")
+
+
+ret <- data.frame(return=expectedReturn, risk=risk, share=names(expectedReturn))
+ret <- ret %>% mutate(sharpe=return/risk)
+
+best.num <- which.max(result$value)
+best <- a[best.num,]
+
+return(
+ggplot(a, aes(x=risk, y=return, col=sharpe)) +
+  geom_point(alpha=.3) +
+  geom_point(data=best, aes(x=risk,y=return), col="red") +
+  # guides(size=F, col = F) + 
+  geom_text(data = ret, aes(x=risk,y=return,label=share),size=5, col="black") + 
+  # geom_text(aes(x=0.062, y = 0.02, label="best result"), col="red") + 
+  labs(title="Risk vs Return of the best portfolios in each generation")
+)
+}
+
+
+optimumPortfolio <- function(){
+# Generates Optimum portfolio structure
+  
+best.num <- which.max(result$value)
+best <- result$specimen[best.num] %>%
+  showPortfolio(num_genes=num_genes)
+best <- data.frame(names(best), best)
+colnames(best) <- c("stock", "share")
+best$label <- percent(best$share)
+best <- arrange(best, stock)
+
+return(
+ggplot(best, aes(x=stock, y=share, label=label)) + 
+geom_col(fill="orange") + 
+labs(title="Optimum portfolio",
+     y="Portfolio share") +
+geom_label(aes(x=1:num_stocks,y=0), inherit.aes = T)
+)
+
+}
+
+
+
+comparePopulPlot <- function(){
+# Generates comparison of populations in the first and the last generation
+  
+pierwsza <- data.frame(return = apply(result$popul[[1]], 1, portfolioReturn, num_genes=num_genes), 
+                       risk = apply(result$popul[[1]], 1, portfolioRisk, num_genes=num_genes))
+ostatnia <- data.frame(return = apply(result$popul[[num_iter]], 1, portfolioReturn, num_genes=num_genes), 
+                       risk = apply(result$popul[[num_iter]], 1, portfolioRisk, num_genes=num_genes))
+pierwsza <- pierwsza %>% mutate(sharpe=return/risk, iter=1)
+ostatnia <- ostatnia %>% mutate(sharpe=return/risk, iter=num_iter)
+d <- rbind(pierwsza, ostatnia)
+
+return(
+ggplot(d, aes(x=risk, y=return, col=factor(iter))) +
+  geom_point() +
+  facet_grid(.~iter) +
+  labs(x="Risk", y="Return") +
+  scale_color_discrete("Generation")
+)
+
+}
+

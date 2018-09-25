@@ -2,12 +2,14 @@
 rm(list=ls())
 
 source("scripts/scraper.R")
-source("scripts/GA_helpers.R")
+source("scripts/GA_implementation.R")
 
 
 # Load data for 5 biggest polish companies
-tickers <- c("kgh","pko","peo","pkn","pzu")
-data <- lapply(tickers, loadData, start=20150701, end=20170831)
+tickers <- c("kgh","pko","peo","pkn", "ccc", "jsw", "tpe", "lpp", "eur", "cdr")
+start=20160101
+end=20180925
+data <- lapply(tickers, loadData, start=start, end=end)
 
 # Prepare data
 prepareData(data)
@@ -30,131 +32,13 @@ system.time({
 
 
 # ANALYSIS
-
-# 1. best speciman, average adaptation, standard deviation
-best <- data.frame(type = "best", value = result$value)
-mean <- data.frame(type = "mean", value = result$avg)
-std  <- data.frame(type = "std dev", value = result$std)
-m <- rbind(best, mean, std)
-m$iter <- seq(1:200)
-
-ggplot(m, aes(x=iter, y=value, col=type)) +
-  geom_line(lwd=1) +
-  facet_wrap(~type, scales = "free", nrow = 3) +
-  scale_color_discrete("Legend")
+performancePlot()
+violinPlot()
+riskVsReturnPlot()
+optimumPortfolio()
+comparePopulPlot()
+corrplot(cor,  order='hclust')
 
 
-# 2. violin plots - distributions of portfolio structure
-a <- as.data.frame(t(mapply(showPortfolio, result$specimen, num_genes=num_genes)))
-head(a)
-summary(a)
-a <- gather(a, stock, value, names(a))
-
-ggplot(a, aes(x=stock, y=value, fill=stock)) + 
-  geom_violin() + 
-  stat_summary(fun.y=median, geom="point", size=2, color="red") +
-  labs(title = "Distribution of portfolio shares",
-       subtitle = "Based on the best portfolio in each generation",
-       x="stock", 
-       y = "Share in portfolio")
-
-
-# 3. risk vs return analysis
-a <- t(mapply(rbind, result$specimen))
-a <- as.data.frame(cbind(a, apply(a,1,portfolioReturn, num_genes=num_genes), apply(a,1,portfolioRisk,num_genes=num_genes)))
-a <- a[,51:52]
-a[,3] <- a[,1]/a[,2]
-colnames(a) <- c("return", "risk","sharpe")
-
-
-ret <- data.frame(return=expectedReturn, risk=risk, share=names(expectedReturn))
-ret <- ret %>% mutate(sharpe=return/risk)
-
-best.num <- which.max(result$value)
-best <- a[best.num,]
-ggplot(a, aes(x=risk, y=return, col=sharpe)) +
-  geom_point(alpha=.3) +
-  geom_point(data=best, aes(x=risk,y=return), col="red") +
-  # guides(size=F, col = F) + 
-  geom_text(data = ret, aes(x=risk,y=return,label=share),size=5, col="black") + 
-  geom_text(aes(x=0.062, y = 0.02, label="best result"), col="red") + 
-  labs(title="Risk vs Return of the best portfolios in each generation")
-
-
-# 4. Optimum portfolio structure
-best.num <- which.max(result$value)
-best <- result$specimen[best.num] %>%
-  showPortfolio(num_genes=num_genes)
-best <- data.frame(names(best), best)
-colnames(best) <- c("stock", "share")
-labels <- percent(best$share)
-
-pal <- brewer.pal(5, "Dark2")
-ggplot(best, aes(x=stock, y=share)) + 
-  geom_col(fill="orange") + 
-  labs(title="Optimum portfolio",
-       y="Portfolio share") +
-  geom_label(aes(x=1:5,y=0, label=labels))
-
-
-# 5. Corrplot 
-corrplot(cor, order="hclust")
-
-
-
-# 6. Risk vs return with background color based on sharpe value
-x=seq(0.05,0.15,length.out = 100)
-y=seq(-0.005,0.025,length.out = 100)
-m <- expand.grid(x,y)
-m[,3] <- m[,2]/m[,1]
-m <- as.data.frame(m)
-colnames(m) <- c("x","y","sharpe")
-
-a <- t(mapply(rbind, result$specimen))
-a <- as.data.frame(cbind(a, apply(a,1,portfolioReturn, num_genes=num_genes), apply(a,1,portfolioRisk, num_genes=num_genes)))
-a <- a[,51:52]
-a[,3] <- a[,1]/a[,2]
-colnames(a) <- c("return", "risk","sharpe")
-
-ret <- data.frame(return=expectedReturn, risk=risk, share=names(expectedReturn))
-ret <- ret %>% mutate(sharpe=return/risk)
-
-best.num <- which.max(result$value)
-best <- a[best.num,]
-ggplot(a, aes(x=risk, y=return)) +
-  geom_point(alpha=.3) +
-  geom_point(data=best, aes(x=risk,y=return), col="red") +
-  guides(col = F) + 
-  geom_text(data = ret, aes(x=risk,y=return,label=share),size=5, col="black") + 
-  geom_text(aes(x=0.062, y = 0.02, label="best result"), col="red") + 
-  labs(title="Risk vs Return of the best portfolios in each generation") + 
-  geom_tile(data=m, aes(x=x,y=y, fill=sharpe), alpha=.4, inherit.aes = F) +
-  scale_fill_gradientn(colours = c("red","green")) +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-
-
-# 7. Compare populations in the first and the last generation
-pierwsza <- data.frame(return = apply(result$popul[[1]], 1, portfolioReturn, num_genes=num_genes), 
-                       risk = apply(result$popul[[1]], 1, portfolioRisk, num_genes=num_genes))
-ostatnia <- data.frame(return = apply(result$popul[[200]], 1, portfolioReturn, num_genes=num_genes), 
-                       risk = apply(result$popul[[200]], 1, portfolioRisk, num_genes=num_genes))
-pierwsza <- pierwsza %>% mutate(sharpe=return/risk, iter=1)
-ostatnia <- ostatnia %>% mutate(sharpe=return/risk, iter=200)
-d <- rbind(pierwsza, ostatnia)
-
-x=seq(0.04,0.1,length.out = 100)
-y=seq(0,0.022,length.out = 100)
-m <- expand.grid(x,y)
-m[,3] <- m[,2]/m[,1]
-m <- as.data.frame(m)
-colnames(m) <- c("x","y","sharpe")
- 
-ggplot(m, aes(x=x,y=y,z=sharpe)) +
-  stat_contour(col = "black", lty = 2) +
-  geom_point(data=d, aes(x=risk, y=return, col=factor(iter)), inherit.aes = F) +
-  facet_grid(.~iter) +
-  labs(x="Risk",
-       y="Return") +
-  scale_color_discrete("Generation")
 
 
