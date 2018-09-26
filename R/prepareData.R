@@ -9,6 +9,7 @@
 #' @return chng - matrix with percentage changes in stock prices
 #' @return cor, cov, expectedReturn, risk - measures of stocks under analysis
 #' @return num_stocks - number of stocks in analysis
+#' @export
 prepareData <- function(data){
 
   # Count percentage differences of stock prices (based on the closing price)
