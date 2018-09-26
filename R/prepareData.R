@@ -2,7 +2,7 @@
 #'
 #' Function prepares all the necessary data for further analysis. Requires the dataset loaded with @loadData function. Function assigns the Values
 #' into .GlobalEnv.
-#'
+#' @importFrom magrittr %>%
 #' @param data raw dataset loaded with @loadData function
 #'
 #' @return data - modified dataset
