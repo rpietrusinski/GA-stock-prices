@@ -14,7 +14,7 @@ prepareData <- function(data){
 
   # Count percentage differences of stock prices (based on the closing price)
   data <- lapply(data, FUN = function(x){ x %>%
-      dplyr::mutate(Zmiana = (Zamkniecie-lag(Zamkniecie))/lag(Zamkniecie))})
+      dplyr::mutate(Zmiana = (Zamkniecie - dplyr::lag(Zamkniecie)) / dplyr::lag(Zamkniecie))})
 
   # number of stocks
   num_stocks <- length(data)
