@@ -1,0 +1,15 @@
+Package: genalg
+Title: Genetic algorithm for portfolio selection
+Version: 0.1.0
+Authors@R: person("Robert", "Pietrusinski", email = "pietrusinski.robert@gmail.com", role = c("aut", "cre"))
+Description: Genetic algorithm implementation for optimum portfolio selection
+Depends: R (>= 3.4.1)
+License: Open-source
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    RCurl (>= 1.95-4.8),
+    dplyr (>= 0.7.3),
+    ggplot2 (>= 2.2.1),
+    tidyr (>= 0.7.1)
+RoxygenNote: 6.0.1
