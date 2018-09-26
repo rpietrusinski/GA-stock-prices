@@ -11,5 +11,6 @@ Imports:
     RCurl (>= 1.95-4.8),
     dplyr (>= 0.7.3),
     ggplot2 (>= 2.2.1),
-    tidyr (>= 0.7.1)
+    tidyr (>= 0.7.1),
+    magrittr (>= 1.5)
 RoxygenNote: 6.0.1
