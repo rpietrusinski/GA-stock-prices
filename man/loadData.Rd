@@ -4,7 +4,7 @@
 \alias{loadData}
 \title{Load data}
 \usage{
-loadData(x, start, end)
+loadData(x, start, end, freq)
 }
 \arguments{
 \item{x}{tick of required stock (ex. "PKO")}
@@ -12,6 +12,8 @@ loadData(x, start, end)
 \item{start}{start date (format = yyyymmdd)}
 
 \item{end}{end date (format = yyyymmdd)}
+
+\item{freq}{monthly('m')/daily('d') data}
 }
 \value{
 data.frame with share prices
