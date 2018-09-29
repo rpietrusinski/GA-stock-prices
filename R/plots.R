@@ -13,7 +13,7 @@ performancePlot <- function(){
   m$iter <- seq(1:num_iter)
 
   return(
-    ggplot2::ggplot(m, aes(x=iter, y=value, col=type)) +
+    ggplot2::ggplot(m, ggplot2::aes(x=iter, y=value, col=type)) +
       ggplot2::geom_line(lwd=1) +
       ggplot2::facet_wrap(~type, scales = "free", nrow = 3) +
       ggplot2::scale_color_discrete("Legend")
@@ -33,7 +33,7 @@ violinPlot <- function(){
   a <- tidyr::gather(a, stock, value)
 
   return(
-    ggplot2::ggplot(a, aes(x=stock, y=value, fill=stock)) +
+    ggplot2::ggplot(a, ggplot2::aes(x=stock, y=value, fill=stock)) +
       ggplot2::geom_violin() +
       ggplot2::stat_summary(fun.y=median, geom="point", size=2, color="red") +
       ggplot2::labs(title = "Distribution of portfolio shares",
@@ -67,10 +67,10 @@ riskVsReturnPlot <- function(){
   best <- a[best.num,]
 
   return(
-    ggplot2::ggplot(a, aes(x=risk, y=return, col=sharpe)) +
+    ggplot2::ggplot(a, ggplot2::aes(x=risk, y=return, col=sharpe)) +
       ggplot2::geom_point(alpha=.3) +
-      ggplot2::geom_point(data=best, aes(x=risk,y=return), col="red") +
-      ggplot2::geom_text(data = ret, aes(x=risk,y=return,label=share),size=5, col="black") +
+      ggplot2::geom_point(data=best, ggplot2::aes(x=risk,y=return), col="red") +
+      ggplot2::geom_text(data = ret, ggplot2::aes(x=risk,y=return,label=share),size=5, col="black") +
       ggplot2::labs(title="Risk vs Return of the best portfolios in each generation")
   )
 }
@@ -93,11 +93,11 @@ optimumPortfolio <- function(){
   best <- dplyr::arrange(best, stock)
 
   return(
-    ggplot2::ggplot(best, aes(x=stock, y=share, label=label)) +
+    ggplot2::ggplot(best, ggplot2::aes(x=stock, y=share, label=label)) +
       ggplot2::geom_col(fill="orange") +
       ggplot2::labs(title="Optimum portfolio",
            y="Portfolio share") +
-      ggplot2::geom_label(aes(x=1:num_stocks,y=0), inherit.aes = T)
+      ggplot2::geom_label(ggplot2::aes(x=1:num_stocks,y=0), inherit.aes = T)
   )
 
 }
@@ -121,7 +121,7 @@ comparePopulPlot <- function(){
   d <- rbind(pierwsza, ostatnia)
 
   return(
-    ggplot2::ggplot(d, aes(x=risk, y=return, col=factor(iter))) +
+    ggplot2::ggplot(d, ggplot2::aes(x=risk, y=return, col=factor(iter))) +
       ggplot2::geom_point() +
       ggplot2::facet_grid(.~iter) +
       ggplot2::labs(x="Risk", y="Return") +
