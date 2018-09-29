@@ -89,7 +89,7 @@ optimumPortfolio <- function(){
     showPortfolio(num_genes=num_genes)
   best <- data.frame(names(best), best)
   colnames(best) <- c("stock", "share")
-  best$label <- percent(best$share)
+  best$label <- scales::percent(best$share)
   best <- dplyr::arrange(best, stock)
 
   return(
